@@ -1,4 +1,3 @@
-import browser from 'webextension-polyfill'
 import { css, escapeHtml, html, runAtDocumentEnd } from './utils'
 
 const icon = html`
@@ -90,19 +89,109 @@ runAtDocumentEnd(() => {
         window.top?.postMessage({ type: 'speller-check', text })
 
         try {
-          const result = await fetch('https://speller.town', {
+          const res = await fetch('https://speller.town', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ text }),
           })
+          const result = await res.json()
 
-          browser.runtime.sendMessage({
-            action: 'speller-result',
-            text,
-            result,
-          })
+          let html = ''
+          let offset = 0
+
+          for (const suggestion of result.suggestions) {
+            html += escapeHtml(text.slice(offset, suggestion.start))
+            html += `<span style="background-color: #FFE770;">${escapeHtml(
+              suggestion.candidates[0]
+            )}</span>`
+            offset = suggestion.end
+          }
+
+          html += text.slice(offset)
+          html = html.replace(/\n/g, '<br>')
+
+          const resultDiv = document.createElement('div')
+          const resultSpan = document.createElement('span')
+          const backgroundDiv = document.createElement('div')
+
+          backgroundDiv.onclick = closeResult
+
+          backgroundDiv.id = 'speller-result-background'
+
+          resultDiv.id = 'speller-result'
+          resultSpan.innerHTML = html
+
+          if (result.suggestions.length > 0) {
+            resultDiv.appendChild(resultSpan)
+          } else {
+            // No suggestions
+            const noSuggestions = document.createElement('div')
+            noSuggestions.textContent = '맞춤법 오류가 없습니다.'
+            noSuggestions.style.color = '#808080'
+            noSuggestions.style.textAlign = 'center'
+            resultDiv.appendChild(noSuggestions)
+          }
+
+          const actions = document.createElement('div')
+          actions.classList.add('speller-result-actions')
+          const copyButton = document.createElement('button')
+          copyButton.textContent = '복사'
+          copyButton.onclick = () => {
+            navigator.clipboard.writeText(resultSpan.innerText)
+            closeResult()
+          }
+          const closeButton = document.createElement('button')
+          closeButton.textContent = '닫기'
+          closeButton.onclick = closeResult
+
+          actions.appendChild(copyButton)
+          actions.appendChild(closeButton)
+
+          resultDiv.appendChild(actions)
+
+          addResultStyleOnce()
+
+          document.body.appendChild(backgroundDiv)
+          document.body.appendChild(resultDiv)
+
+          resultDiv.getBoundingClientRect()
+
+          backgroundDiv.classList.add('show')
+          resultDiv.classList.add('show')
+
+          window.addEventListener('keydown', onKeyDown)
+
+          function onKeyDown(e: KeyboardEvent) {
+            if (e.key === 'Escape') {
+              closeResult()
+              window.removeEventListener('keydown', onKeyDown)
+            }
+          }
+
+          function closeResult() {
+            const background = document.getElementById(
+              'speller-result-background'
+            )
+            const result = document.getElementById('speller-result')
+
+            if (background) {
+              background.classList.remove('show')
+
+              setTimeout(() => {
+                background.remove()
+              }, 200)
+            }
+
+            if (result) {
+              result.classList.remove('show')
+
+              setTimeout(() => {
+                result.remove()
+              }, 300)
+            }
+          }
         } catch (error) {
           console.error(error)
         } finally {
@@ -168,116 +257,6 @@ runAtDocumentEnd(() => {
       }
     }, 200)
   })
-
-  if (window.self === window.top) {
-    browser.runtime.onMessage.addListener((message) => {
-      const customMessage = message as {
-        action?: 'speller-result'
-        text: string
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-        result: any
-      }
-
-      if (customMessage?.action !== 'speller-result') {
-        return undefined
-      }
-
-      const { text, result } = customMessage
-
-      let html = ''
-      let offset = 0
-
-      for (const suggestion of result.suggestions) {
-        html += escapeHtml(text.slice(offset, suggestion.start))
-        html += `<span style="background-color: #FFE770;">${escapeHtml(
-          suggestion.candidates[0]
-        )}</span>`
-        offset = suggestion.end
-      }
-
-      html += text.slice(offset)
-      html = html.replace(/\n/g, '<br>')
-
-      const resultDiv = document.createElement('div')
-      const resultSpan = document.createElement('span')
-      const backgroundDiv = document.createElement('div')
-
-      backgroundDiv.onclick = closeResult
-
-      backgroundDiv.id = 'speller-result-background'
-
-      resultDiv.id = 'speller-result'
-      resultSpan.innerHTML = html
-
-      if (result.suggestions.length > 0) {
-        resultDiv.appendChild(resultSpan)
-      } else {
-        // No suggestions
-        const noSuggestions = document.createElement('div')
-        noSuggestions.textContent = '맞춤법 오류가 없습니다.'
-        noSuggestions.style.color = '#808080'
-        noSuggestions.style.textAlign = 'center'
-        resultDiv.appendChild(noSuggestions)
-      }
-
-      const actions = document.createElement('div')
-      actions.classList.add('speller-result-actions')
-      const copyButton = document.createElement('button')
-      copyButton.textContent = '복사'
-      copyButton.onclick = () => {
-        navigator.clipboard.writeText(resultSpan.innerText)
-        closeResult()
-      }
-      const closeButton = document.createElement('button')
-      closeButton.textContent = '닫기'
-      closeButton.onclick = closeResult
-
-      actions.appendChild(copyButton)
-      actions.appendChild(closeButton)
-
-      resultDiv.appendChild(actions)
-
-      addResultStyleOnce()
-
-      document.body.appendChild(backgroundDiv)
-      document.body.appendChild(resultDiv)
-
-      resultDiv.getBoundingClientRect()
-
-      backgroundDiv.classList.add('show')
-      resultDiv.classList.add('show')
-
-      window.addEventListener('keydown', onKeyDown)
-
-      function onKeyDown(e: KeyboardEvent) {
-        if (e.key === 'Escape') {
-          closeResult()
-          window.removeEventListener('keydown', onKeyDown)
-        }
-      }
-
-      function closeResult() {
-        const background = document.getElementById('speller-result-background')
-        const result = document.getElementById('speller-result')
-
-        if (background) {
-          background.classList.remove('show')
-
-          setTimeout(() => {
-            background.remove()
-          }, 200)
-        }
-
-        if (result) {
-          result.classList.remove('show')
-
-          setTimeout(() => {
-            result.remove()
-          }, 300)
-        }
-      }
-    })
-  }
 })
 
 const getCursorXY = (
