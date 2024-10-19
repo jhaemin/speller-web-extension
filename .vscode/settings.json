@@ -15,5 +15,5 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "typescript.tsdk": "node_modules/typescript/lib",
-  "cSpell.words": ["biomejs", "webextension"]
+  "cSpell.words": ["biomejs", "chok", "outdir", "webextension"]
 }

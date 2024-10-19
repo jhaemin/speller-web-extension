@@ -1,6 +1,5 @@
 import browser from 'webextension-polyfill'
-import { escapeHtml } from './escape-html'
-import { css, html, runAtDocumentEnd } from './utils'
+import { css, escapeHtml, html, runAtDocumentEnd } from './utils'
 
 const icon = html`
   <svg

@@ -1,7 +1,20 @@
 {
-  "dependencies": { "webextension-polyfill": "^0.12.0" },
+  "scripts": {
+    "dev": "bun --watch run scripts/build.ts --dev",
+    "build": "bun run scripts/build.ts"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "chokidar": "^4.0.1",
+    "esbuild": "^0.24.0",
+    "webextension-polyfill": "^0.12.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@biomejs/js-api": "^0.7.1",
+    "@biomejs/wasm-nodejs": "^1.9.4",
+    "@types/bun": "^1.1.11",
+    "@types/chrome": "^0.0.278",
     "@types/webextension-polyfill": "^0.12.1"
   }
 }
