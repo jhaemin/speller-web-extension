@@ -1,0 +1,1 @@
+# Speller Web Extension
