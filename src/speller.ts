@@ -483,6 +483,7 @@ function addResultStyleOnce() {
         background-color: #fff;
         padding: 18px 20px;
         font-size: 15px;
+        font-weight: 400;
         font-family: system-ui, sans-serif;
         line-height: 1.4;
         line-break: anywhere;
